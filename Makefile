@@ -108,6 +108,9 @@ ifeq ($(OS),windows)
 	$(GOGETTER) code.google.com/p/winsvc/eventlog
 endif
 
+go_get_memory_deps:
+	$(GOGETTER) github.com/mozilla/masche/...
+
 go_get_platform_deps: go_get_common_deps
 	$(GOGETTER) github.com/streadway/amqp
 	$(GOGETTER) github.com/lib/pq
