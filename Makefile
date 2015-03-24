@@ -98,8 +98,7 @@ go_get_common_deps:
 	$(GOGETTER) code.google.com/p/go.crypto/openpgp
 	$(GOGETTER) code.google.com/p/gcfg
 
-go_get_agent_deps: go_get_common_deps
-                   go_get_memory_deps
+go_get_agent_deps: go_get_common_deps go_get_masche_deps
 	$(GOGETTER) code.google.com/p/go.crypto/sha3
 	$(GOGETTER) github.com/streadway/amqp
 	$(GOGETTER) github.com/kardianos/osext
@@ -109,8 +108,10 @@ ifeq ($(OS),windows)
 	$(GOGETTER) code.google.com/p/winsvc/eventlog
 endif
 
-go_get_memory_deps:
-	$(GOGETTER) github.com/mozilla/masche/...
+go_get_masche_deps: 
+	$(GOGETTER) github.com/mozilla/masche/process
+	$(GOGETTER) github.com/mozilla/masche/listlibs
+	$(GOGETTER) github.com/mozilla/masche/memsearch
 
 go_get_platform_deps: go_get_common_deps
 	$(GOGETTER) github.com/streadway/amqp
