@@ -221,21 +221,8 @@ func SearchLoadedLibs(currproc *ProcSearch) (err error) {
 					continue
 				}
 
-				// Check if we already have a result associated with this search label in the result hash.
-				// If we don't we create a new ProcResult with the process name and pid and add the libs found to it.
 				var res ProcResult
-				res, ok := currproc.Results[label]
-
-				if !ok {
-					pname, harderr, softerr := currproc.Proc.Name()
-					if harderr != nil {
-						return harderr
-					}
-					addSoftErrors(softerr)
-					res.Name = pname
-					res.Pid = float64(currproc.Proc.Pid())
-				}
-
+				res, _ = currproc.Results[label]
 				res.Libs = append(res.Libs, libs[i])
 				currproc.Results[label] = res
 			}
@@ -247,6 +234,9 @@ func SearchLoadedLibs(currproc *ProcSearch) (err error) {
 func ScanProcMemory(currproc *ProcSearch) (harderr error) {
 	scancount := ActivateAllScans(currproc)
 	buffer_size := uint(4096)
+	if scancount == 0 {
+		return
+	}
 
 	walkfn :=
 		func(address uintptr, buf []byte) (keepSearching bool) {
@@ -272,23 +262,10 @@ func ScanProcMemory(currproc *ProcSearch) (harderr error) {
 
 					// If we are here, it means that we have found a match.
 					var res ProcResult
-					if _, ok := currproc.Results[label]; !ok {
-						procname, harderr, softerr := currproc.Proc.Name()
-						if harderr != nil {
-							return false
-						}
+					res = currproc.Results[label]
+					res.MatchedCount++
+					currproc.Results[label] = res
 
-						addSoftErrors(softerr)
-						res.Name = procname
-						res.Pid = float64(currproc.Proc.Pid())
-						res.Found = true
-						res.MatchedCount = 1
-						currproc.Results[label] = res
-					} else {
-						res = currproc.Results[label]
-						res.MatchedCount++
-						currproc.Results[label] = res
-					}
 					// Check if 'n' matches have been found. Deactivate the scan if we've found 'n' matches.
 					if int(currproc.Results[label].MatchedCount) == int(currscan.MatchCount) {
 						currscan.active = false
@@ -354,12 +331,23 @@ func (r Runner) Run(Args []byte) (resStr string) {
 
 			// Add currsearch to the processes returned by pgrep.
 			for i := range plist {
+				var res ProcResult
 				pid := plist[i].Pid()
 				_, ok := proclist[pid]
 				// Check if we have this process in the proclist already. If we don't we create a new ProcSearch and add it to the list.
 				if !ok {
 					procsearch := ProcSearch{Searches: make(map[string]Search), Results: make(map[string]ProcResult)}
 					procsearch.Proc = plist[i]
+
+					procname, harderr, softerr := plist[i].Name()
+					if harderr != nil {
+						panic(harderr)
+					}
+					addSoftErrors(softerr)
+					res.Name = procname
+					res.Pid = float64(pid)
+					res.MatchedCount = 1
+					procsearch.Results[label] = res
 					proclist[pid] = procsearch
 				}
 				proclist[pid].Searches[label] = currsearch
